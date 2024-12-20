@@ -13,9 +13,21 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.android.gestures.MoveGestureDetector;
 import com.mapbox.geojson.Point;
@@ -29,14 +41,21 @@ import com.mapbox.maps.plugin.locationcomponent.LocationComponentUtils;
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorBearingChangedListener;
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener;
 
+import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity{
 
     MapView mapView;
     FloatingActionButton floatingActionButton;
     FloatingActionButton satellite;
     FloatingActionButton street;
     FloatingActionButton hybrid;
+    TextView textViewSpeed;
+
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private FusedLocationProviderClient fusedLocationClient;
+
 
     private final ActivityResultLauncher<String> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
         @Override
@@ -92,11 +111,16 @@ public class MainActivity extends AppCompatActivity {
         satellite = findViewById(R.id.satellite);
         street = findViewById(R.id.street);
         hybrid = findViewById(R.id.hybrid);
+        textViewSpeed = findViewById(R.id.textViewSpeed);
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        if(ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            activityResultLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            startLocationUpdates();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
         }
+
 
         mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
             @Override
@@ -140,6 +164,43 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
     }
+
+
+    private void startLocationUpdates() {
+        LocationRequest locationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(1000) // Update every second
+                .setFastestInterval(500);
+
+        LocationCallback locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult != null) {
+                    for (Location location : locationResult.getLocations()) {
+                        if (location != null) {
+                            float speed = location.getSpeed(); // Speed in meters/second
+                            textViewSpeed.setText(String.format("%.2f km/h", speed * 3.6)); // Convert to km/h
+                        }
+                    }
+                }
+            }
+        };
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        }
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startLocationUpdates();
+        }
+    }
+
 
 }

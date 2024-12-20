@@ -5,10 +5,21 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+
     <com.mapbox.maps.MapView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/mapView"/>
+        android:id="@+id/mapView">
+
+        <TextView
+            android:id="@+id/textViewSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="40dp"
+            android:textColor="#000000"
+            android:textSize="20sp" />
+    </com.mapbox.maps.MapView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/focusLocation"
